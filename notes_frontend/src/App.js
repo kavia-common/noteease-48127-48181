@@ -1,49 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
+import React, { useMemo, useState } from 'react';
+import './theme.css';
 import './App.css';
+import NavBar from './components/NavBar';
+import NotesList from './components/NotesList';
+import NoteEditor from './components/NoteEditor';
+import FloatingActionButton from './components/FloatingActionButton';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { NotesProvider } from './store/NotesContext';
+import { getEnv } from './utils/env';
 
 // PUBLIC_INTERFACE
-function App() {
-  const [theme, setTheme] = useState('light');
+function AppShell() {
+  /** Top-level application shell for NoteEase. */
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
 
-  // Effect to apply theme to document element
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+  function openNew() {
+    setEditing(null);
+    setEditorOpen(true);
+  }
+  function openEdit(note) {
+    setEditing(note);
+    setEditorOpen(true);
+  }
+  function closeEditor() {
+    setEditorOpen(false);
+    setEditing(null);
+  }
 
-  // PUBLIC_INTERFACE
-  const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
-  };
+  const env = useMemo(() => getEnv(), []);
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <button 
-          className="theme-toggle" 
-          onClick={toggleTheme}
-          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
-        </button>
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <p>
-          Current theme: <strong>{theme}</strong>
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <NavBar />
+      <main className="container" role="main">
+        {env.apiBase && (
+          <div className="kicker" style={{ marginBottom: 10 }}>
+            Connected base: {env.apiBase} (placeholder, not used yet)
+          </div>
+        )}
+        <NotesList onEditRequest={openEdit} />
+      </main>
+      <FloatingActionButton onClick={openNew} />
+      <NoteEditor open={editorOpen} onClose={closeEditor} initial={editing} />
+      <div className="footer">NoteEase • Ocean Professional UI</div>
     </div>
   );
 }
 
-export default App;
+// PUBLIC_INTERFACE
+export default function App() {
+  /** App entry wrapped with providers and error boundary. */
+  return (
+    <ErrorBoundary>
+      <NotesProvider>
+        <AppShell />
+      </NotesProvider>
+    </ErrorBoundary>
+  );
+}
